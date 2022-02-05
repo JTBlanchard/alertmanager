@@ -17,6 +17,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -146,25 +147,61 @@ func TestWebexTemplating(t *testing.T) {
 		})
 	}
 }
-func TestMessageSizeEnforcement(t *testing.T) {
-	bigDetails := strings.Repeat("a", 513000)
+func TestWebexCreateRequest(t *testing.T) {
+	url, err := url.Parse("https://webexapis.com/")
+	if err != nil {
+		require.NoError(t, err)
+	}
+	template := `{{ .CommonLabels.Description }}`
+	ctx := context.Background()
+	ctx = notify.WithGroupKey(ctx, "1")
 
-	msg := &WebexMessage{
-		Markdown: bigDetails,
+	apiToken := "01234567890123456789012345678901"
+
+	config := &config.WebexConfig{
+		APIToken:   config.Secret(apiToken),
+		APIURL:     &config.URL{URL: url},
+		HTTPConfig: &commoncfg.HTTPClientConfig{},
+		Markdown:   template,
+		Text:       template,
+		ToPersonID: "foo@bar.com",
+	}
+
+	// Create a description guaranteed to exceed the maximum message size.
+	bigDetails := strings.Repeat("a", maxMessageSize+1)
+
+	alert := &types.Alert{
+		Alert: model.Alert{
+			StartsAt: time.Now(),
+			EndsAt:   time.Now().Add(time.Hour),
+			Labels: model.LabelSet{
+				"Description": model.LabelValue(bigDetails),
+			},
+		},
 	}
 
 	notifier, err := New(
-		&config.WebexConfig{
-			APIToken:   config.Secret("01234567890123456789012345678901"),
-			HTTPConfig: &commoncfg.HTTPClientConfig{},
-		},
+		config,
 		test.CreateTmpl(t),
 		log.NewNopLogger(),
 	)
 	require.NoError(t, err)
 
-	encoded, err := notifier.encodeMessage(msg)
+	request, retry, err := notifier.createRequest(ctx, alert)
 	require.NoError(t, err)
-	require.Contains(t, encoded.String(), `{"markdown":"Custom details have been removed because the original message exceeds the maximum size of 7439 bytes"}`)
+	require.True(t, retry)
+
+	// Validate authorization header
+	require.Equal(t, request.Header.Values("Authorization"), []string{fmt.Sprintf("Bearer %s", apiToken)})
+
+	// Validate message fields
+	body, err := ioutil.ReadAll(request.Body)
+	require.NoError(t, err)
+	var msg WebexMessage
+	err = json.Unmarshal([]byte(body), &msg)
+	require.NoError(t, err)
+	truncatedMessage, _ := notify.Truncate(string(alert.Alert.Labels["Description"]), maxMessageSize)
+	require.Equal(t, truncatedMessage, msg.Markdown)
+	require.Equal(t, truncatedMessage, msg.Text)
 
 }

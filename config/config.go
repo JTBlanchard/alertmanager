@@ -178,11 +178,13 @@ func Load(s string) (*Config, error) {
 	// UnmarshalYAML method because it won't be called if the input is empty
 	// (e.g. the config file is empty or only contains whitespace).
 	if cfg.Route == nil {
+		fmt.Println("cfg.Route error")
 		return nil, errors.New("no route provided in config")
 	}
 
 	// Check if continue in root route.
 	if cfg.Route.Continue {
+		fmt.Println("continue in root route error")
 		return nil, errors.New("cannot have continue in root route")
 	}
 
@@ -417,12 +419,12 @@ func (c *Config) UnmarshalYAML(unmarshal func(interface{}) error) error {
 					return fmt.Errorf("no global Webex URL set")
 				}
 				wec.APIURL = c.Global.WebexAPIURL
-				if wec.APIToken == "" {
-					if c.Global.WebexAPIToken == "" {
-						return fmt.Errorf("no global Webex access token set")
-					}
-					wec.APIToken = c.Global.WebexAPIToken
+			}
+			if wec.APIToken == "" {
+				if c.Global.WebexAPIToken == "" {
+					return fmt.Errorf("no global Webex access token set")
 				}
+				wec.APIToken = c.Global.WebexAPIToken
 			}
 		}
 		for _, wcc := range rcv.WechatConfigs {
@@ -560,7 +562,7 @@ func DefaultGlobalConfig() GlobalConfig {
 		OpsGenieAPIURL:  mustParseURL("https://api.opsgenie.com/"),
 		WeChatAPIURL:    mustParseURL("https://qyapi.weixin.qq.com/cgi-bin/"),
 		VictorOpsAPIURL: mustParseURL("https://alert.victorops.com/integrations/generic/20131114/alert/"),
-		WebexAPIURL:     mustParseURL("https://webexapis.com/v1"),
+		WebexAPIURL:     mustParseURL("https://webexapis.com/"),
 	}
 }
 

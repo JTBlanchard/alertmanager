@@ -22,7 +22,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/alecthomas/units"
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
 	"github.com/pkg/errors"
@@ -75,83 +74,76 @@ type WebexAttachment struct {
 	ContentType string                 `json:"contentType"`
 }
 
-// maxMessageSize represents the maximum size in bytes.
+// maxMessageSize represents the maximum message body size in bytes.
 const maxMessageSize = 7439
-
-func (n *Notifier) encodeMessage(msg *WebexMessage) (bytes.Buffer, error) {
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(msg); err != nil {
-		return buf, errors.Wrap(err, "failed to encode Webex message")
-	}
-
-	if buf.Len() > maxMessageSize {
-		truncatedMsg := fmt.Sprintf("Custom details have been removed because the original message exceeds the maximum size of %d bytes", maxMessageSize)
-
-		msg.Markdown = truncatedMsg
-
-		warningMsg := fmt.Sprintf("Truncated Details because message of size %s exceeds limit %d bytes", units.MetricBytes(buf.Len()).String(), maxMessageSize)
-		level.Warn(n.logger).Log("msg", warningMsg)
-
-		buf.Reset()
-		if err := json.NewEncoder(&buf).Encode(msg); err != nil {
-			return buf, errors.Wrap(err, "failed to encode Webex message")
-		}
-	}
-
-	return buf, nil
-}
 
 // Notify implements the Webex Notifier interface.
 func (n *Notifier) Notify(ctx context.Context, alerts ...*types.Alert) (bool, error) {
-	var (
-		tmplErr error
-		data    = notify.GetTemplateData(ctx, n.tmpl, alerts, n.logger)
-		tmpl    = notify.TmplText(n.tmpl, data, &tmplErr)
-	)
-	if tmplErr != nil {
-		return false, errors.Wrap(tmplErr, "failed to template")
+	req, retry, err := n.createRequest(ctx, alerts...)
+	if err != nil {
+		return retry, err
 	}
+	resp, err := n.client.Do(req)
+	if err != nil {
+		return true, err
+	}
+	defer notify.Drain(resp)
 
+	retry, err = n.retrier.Check(resp.StatusCode, resp.Request.Body)
+	return retry, err
+}
+
+func (n *Notifier) createRequest(ctx context.Context, alerts ...*types.Alert) (*http.Request, bool, error) {
 	groupKey, err := notify.ExtractGroupKey(ctx)
 	if err != nil {
-		level.Error(n.logger).Log("err", err)
+		return nil, false, err
 	}
-
 	level.Debug(n.logger).Log("notification", groupKey, "RoomID", n.conf.RoomID, "ToPersonID", n.conf.ToPersonID, n.conf.ToPersonEmail)
 
+	data := notify.GetTemplateData(ctx, n.tmpl, alerts, n.logger)
+	tmpl := notify.TmplText(n.tmpl, data, &err)
+	if err != nil {
+		return nil, false, errors.Wrap(err, "failed to template")
+	}
+	level.Info(n.logger).Log("data", "%+v", data)
+	fmt.Printf("%+v", data)
+
+	markdown, truncated := notify.Truncate(tmpl(n.conf.Markdown), maxMessageSize)
+	if truncated {
+		level.Debug(n.logger).Log("msg", "truncated Markdown message", "truncated_message", markdown, "alert", groupKey)
+	}
+	text, truncated := notify.Truncate(tmpl(n.conf.Text), maxMessageSize)
+	if truncated {
+		level.Debug(n.logger).Log("msg", "truncated Text message", "truncated_message", text, "alert", groupKey)
+	}
+
 	msg := &WebexMessage{
-		RoomID:        tmpl(n.conf.RoomID),
-		ToPersonID:    tmpl(n.conf.ToPersonID),
-		ToPersonEmail: tmpl(n.conf.ToPersonEmail),
-		Text:          tmpl(n.conf.Text),
-		Markdown:      tmpl(n.conf.Markdown),
+		RoomID:        n.conf.RoomID,
+		ToPersonID:    n.conf.ToPersonID,
+		ToPersonEmail: n.conf.ToPersonEmail,
+		Markdown:      markdown,
+		Text:          text,
 		Files:         nil,
 		Attachments:   nil,
 	}
 
-	// Check for valid recipient
-	if msg.RoomID == "" && msg.ToPersonID == "" && msg.ToPersonEmail == "" {
-		return false, errors.New("one of room_id, to_person_id, or to_person_email required")
-	}
-
 	postMessageURL := n.conf.APIURL.Copy()
-	postMessageURL.Path += "message/send"
-	q := postMessageURL.Query()
-	q.Set("access_token", string(n.conf.APIToken))
-	postMessageURL.RawQuery = q.Encode()
-
+	postMessageURL.Path += "v1/messages"
 	var buf bytes.Buffer
+	level.Info(n.logger).Log("msg", "%+v", msg)
 	if err := json.NewEncoder(&buf).Encode(msg); err != nil {
-		return false, err
+		return nil, false, err
 	}
-
-	resp, err := notify.PostJSON(ctx, n.client, postMessageURL.String(), &buf)
+	req, err := http.NewRequest("POST", postMessageURL.String(), &buf)
 	if err != nil {
-		return true, err
+		return nil, true, err
 	}
-	notify.Drain(resp)
+	req.Header.Set("Authorization", "Bearer "+string(n.conf.APIToken))
+	req.Header.Set("User-Agent", notify.UserAgentHeader)
+	req.Header.Set("Content-Type", "application/json")
 
-	return n.retrier.Check(resp.StatusCode, nil)
+	return req, true, nil
+
 }
 
 func errDetails(status int, body io.Reader) string {

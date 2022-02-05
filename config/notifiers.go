@@ -143,7 +143,8 @@ var (
 		NotifierConfig: NotifierConfig{
 			VSendResolved: true,
 		},
-		Markdown: `{{ template "webex.default.markdown" .}}`,
+		Markdown: `{{ template "webex.default.markdown" . }}`,
+		Text:     `{{ template "webex.default.text" . }}`,
 	}
 )
 
@@ -668,6 +669,21 @@ func (c *WebexConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	}
 	if c.APIToken == "" {
 		return fmt.Errorf("missing API token in Webex config")
+	}
+	// Check for single valid recipient
+	recipients := []string{
+		c.RoomID,
+		c.ToPersonID,
+		c.ToPersonEmail,
+	}
+	count := 0
+	for _, recipient := range recipients {
+		if recipient != "" {
+			count++
+		}
+	}
+	if count != 1 {
+		return fmt.Errorf("one of room_id, to_person_id, or to_person_email required")
 	}
 
 	return nil
