@@ -137,6 +137,15 @@ var (
 		Subject: `{{ template "sns.default.subject" . }}`,
 		Message: `{{ template "sns.default.message" . }}`,
 	}
+
+	// DefaultPagerdutyConfig defines default values for PagerDuty configurations.
+	DefaultWebexConfig = WebexConfig{
+		NotifierConfig: NotifierConfig{
+			VSendResolved: true,
+		},
+		Markdown: `{{ template "webex.default.markdown" . }}`,
+		Text:     `{{ template "webex.default.text" . }}`,
+	}
 )
 
 // NotifierConfig contains base options common across all notifier configurations.
@@ -626,5 +635,38 @@ func (c *SNSConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	if (c.Sigv4.AccessKey == "") != (c.Sigv4.SecretKey == "") {
 		return fmt.Errorf("must provide a AWS SigV4 Access key and Secret Key if credentials are specified in the SNS config")
 	}
+	return nil
+}
+
+// WebexConfig configures notifications via Webex
+type WebexConfig struct {
+	NotifierConfig `yaml:",inline" json:",inline"`
+
+	HTTPConfig *commoncfg.HTTPClientConfig `yaml:"http_config,omitempty" json:"http_config,omitempty"`
+
+	APIURL        *URL              `yaml:"api_url,omitempty" json:"api_url,omitempty"`
+	APIToken      Secret            `yaml:"api_token,omitempty" json:"api_token,omitempty"`
+	RoomID        string            `yaml:"room_id,omitempty" json:"roomId,omitempty"`
+	ToPersonID    string            `yaml:"to_person_id,omitempty" json:"toPersonId,omitempty"`
+	ToPersonEmail string            `yaml:"to_person_email,omitempty" json:"toPersonEmail,omitempty"`
+	Text          string            `yaml:"text,omitempty" json:"text,omitempty"`
+	Markdown      string            `yaml:"markdown,omitempty" json:"markdown,omitempty"`
+	Files         []string          `yaml:"files,omitempty" json:"files,omitempty"`
+	Attachments   []WebexAttachment `yaml:"attachments,omitempty" json:"attachments,omitempty"`
+}
+
+type WebexAttachment struct {
+	Content     string `yaml:"content" json:"content"`
+	ContentType string `yaml:"content_type" json:"contentType"`
+}
+
+// UnmarshalYAML implements the yaml.Unmarshaler interface.
+func (c *WebexConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	*c = DefaultWebexConfig
+	type plain WebexConfig
+	if err := unmarshal((*plain)(c)); err != nil {
+		return err
+	}
+
 	return nil
 }
