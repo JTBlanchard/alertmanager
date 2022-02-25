@@ -691,6 +691,23 @@ func TestWeChatTypeMatcher(t *testing.T) {
 	}
 }
 
+func TestWebexAPIKeyIsPresent(t *testing.T) {
+	in := `
+api_token: ''
+`
+	var cfg WebexConfig
+	err := yaml.UnmarshalStrict([]byte(in), &cfg)
+
+	expected := "missing API token in Webex config"
+
+	if err == nil {
+		t.Fatalf("no error returned, expected:\n%v", expected)
+	}
+	if err.Error() != expected {
+		t.Errorf("\nexpected:\n%v\ngot:\n%v", expected, err.Error())
+	}
+}
+
 func newBoolPointer(b bool) *bool {
 	return &b
 }

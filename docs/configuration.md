@@ -448,6 +448,8 @@ sns_configs:
   [ - <sns_config>, ... ]
 victorops_configs:
   [ - <victorops_config>, ... ]
+webex_configs:
+  [ - <webex_config>, ... ]
 webhook_configs:
   [ - <webhook_config>, ... ]
 wechat_configs:
@@ -976,6 +978,46 @@ endpoint:
 There is a list of
 [integrations](https://prometheus.io/docs/operating/integrations/#alertmanager-webhook-receiver) with
 this feature.
+
+## `<webex_config>`
+
+Webex notifications are sent via the [Webex Messages
+API](https://webexapis.com/v1/messages).
+
+```yaml
+# Whether to notify about resolved alerts.
+[ send_resolved: <boolean> | default = false ]
+
+# The API token to use when talking to the Webex API.
+[ api_token: <secret> | default = global.webex_api_token ]
+
+# The Webex API URL.
+[ api_url: <string> | default = global.webex_api_url ]
+
+# API request data as defined by the Webex API.
+# A destination should be specified by setting one of room_id, to_person_id, or to_person_email
+[ room_id: <string> | default = '{{ template "webex.default.room_id" . }}' ]
+[ to_person_id: <string> | default = '{{ template "webex.default.to_person_id" . }}' ]
+[ to_person_email: <string> | default = '{{ template "webex.default.to_person_email" . }}' ]
+# If markdown field is used, the text field may be used to provide alternate text for clients that do not support rich text.
+[ text: <string> | default = '{{ template "webex.default.text" . }}' ]
+# The message in Markdown format.  The maximum length is 7439 bytes.
+[ markdown: <string> | default = '{{ template "webex.default.markdown" . }}' ]
+# Array of public URLs for files to be converted and attached to the message.  For more information about supported file types, see https://developer.webex.com/docs/basics#message-attachments
+[ files: '[' <string>, ... ']' ]
+# Array containing Adaptive Card format attachment to attach to the message. (Presently, only one attachment per message is presently permitted by Webex.)  For information on Adaptive Cards in Webex, see https://developer.webex.com/docs/api/guides/cards
+[ attachments: '[' <string>, ... ']' ]
+```
+
+```go
+RoomID        string       `json:"roomId,omitempty"`        // Room ID.
+ToPersonID    string       `json:"toPersonId,omitempty"`    // Person ID (for type=direct).
+ToPersonEmail string       `json:"toPersonEmail,omitempty"` // Person email (for type=direct).
+Text          string       `json:"text,omitempty"`          // Message in plain text format.
+Markdown      string       `json:"markdown,omitempty"`      // Message in markdown format.
+Files         []string     `json:"files,omitempty"`         // File URL array.
+Attachments   []Attachment `json:"attachments,omitempty"`   //Attachment Array
+```
 
 ## `<wechat_config>`
 
