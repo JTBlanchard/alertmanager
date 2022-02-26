@@ -668,5 +668,27 @@ func (c *WebexConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		return err
 	}
 
+	if c.APIToken == "" {
+		return fmt.Errorf("missing API token in Webex config")
+	}
+
+	// Check for single valid recipient
+	recipients := []string{
+		c.RoomID,
+		c.ToPersonID,
+		c.ToPersonEmail,
+	}
+	count := 0
+	for _, recipient := range recipients {
+		if recipient != "" {
+			count++
+		}
+	}
+	if count == 0 {
+		return fmt.Errorf("one of room_id, to_person_id, or to_person_email required")
+	} else if count > 1 {
+		return fmt.Errorf("only one of room_id, to_person_id, or to_person_email is allowed")
+	}
+
 	return nil
 }
