@@ -996,29 +996,27 @@ API](https://webexapis.com/v1/messages).
 
 # API request data as defined by the Webex API.
 # A destination should be specified by setting one of room_id, to_person_id, or to_person_email
-[ room_id: <string> | default = '{{ template "webex.default.room_id" . }}' ]
-[ to_person_id: <string> | default = '{{ template "webex.default.to_person_id" . }}' ]
-[ to_person_email: <string> | default = '{{ template "webex.default.to_person_email" . }}' ]
-# If markdown field is used, the text field may be used to provide alternate text for clients that do not support rich text.
-[ text: <string> | default = '{{ template "webex.default.text" . }}' ]
+[ room_id: <tmpl_string> ]
+[ to_person_id: <tmpl_string> ]
+[ to_person_email: <tmpl_string> ]
 # The message in Markdown format.  The maximum length is 7439 bytes.
-[ markdown: <string> | default = '{{ template "webex.default.markdown" . }}' ]
-# Array of public URLs for files to be converted and attached to the message.  For more information about supported file types, see https://developer.webex.com/docs/basics#message-attachments
+[ markdown: <tmpl_string> | default = '{{ template "webex.default.markdown" . }}' ]
+# If markdown field is used, the text field may be used to provide alternate text for clients that do not support rich text.
+[ text: <tmpl_string> | default = '{{ template "webex.default.text" . }}' ]
+# Array of public URLs for files to be converted and attached to the message.  Presently, only one is permitted per message.  For more information about supported file types, see https://developer.webex.com/docs/basics#message-attachments
 [ files: '[' <string>, ... ']' ]
-# Array containing Adaptive Card format attachment to attach to the message. (Presently, only one attachment per message is presently permitted by Webex.)  For information on Adaptive Cards in Webex, see https://developer.webex.com/docs/api/guides/cards
-[ attachments: '[' <string>, ... ']' ]
+# Array containing Adaptive Card format attachment to attach to the message. (Presently, only one attachment per message is presently permitted by Webex.).
+[ attachments: '[' <attachment_config>, ... ']' ]
 ```
 
-```go
-RoomID        string       `json:"roomId,omitempty"`        // Room ID.
-ToPersonID    string       `json:"toPersonId,omitempty"`    // Person ID (for type=direct).
-ToPersonEmail string       `json:"toPersonEmail,omitempty"` // Person email (for type=direct).
-Text          string       `json:"text,omitempty"`          // Message in plain text format.
-Markdown      string       `json:"markdown,omitempty"`      // Message in markdown format.
-Files         []string     `json:"files,omitempty"`         // File URL array.
-Attachments   []Attachment `json:"attachments,omitempty"`   //Attachment Array
-```
+### `<attachment_config>`
+For information on Adaptive Cards in Webex, see https://developer.webex.com/docs/api/guides/cards
 
+```yaml
+[ content_type: <tmpl_string> ]
+# The content section is a JSON string representing the Adaptive Card.
+[ content: <tmpl_string> ]
+```
 ## `<wechat_config>`
 
 WeChat notifications are sent via the [WeChat

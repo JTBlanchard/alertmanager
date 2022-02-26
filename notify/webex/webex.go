@@ -85,7 +85,7 @@ func (n *Notifier) Notify(ctx context.Context, alerts ...*types.Alert) (bool, er
 	if err != nil {
 		return retry, err
 	}
-	resp, err := n.client.Do(req)
+	resp, err := n.client.Do(req.WithContext(ctx))
 	if err != nil {
 		return true, err
 	}
@@ -99,26 +99,6 @@ func (n *Notifier) createRequest(ctx context.Context, alerts ...*types.Alert) (*
 	groupKey, err := notify.ExtractGroupKey(ctx)
 	if err != nil {
 		return nil, false, err
-	}
-
-	if n.conf.APIToken == "" {
-		return nil, false, fmt.Errorf("missing API token in Webex config")
-	}
-
-	// Check for single valid recipient
-	recipients := []string{
-		n.conf.RoomID,
-		n.conf.ToPersonID,
-		n.conf.ToPersonEmail,
-	}
-	count := 0
-	for _, recipient := range recipients {
-		if recipient != "" {
-			count++
-		}
-	}
-	if count != 1 {
-		return nil, false, fmt.Errorf("one of room_id, to_person_id, or to_person_email required")
 	}
 
 	data := notify.GetTemplateData(ctx, n.tmpl, alerts, n.logger)
