@@ -14,6 +14,7 @@
 package config
 
 import (
+	"encoding/json"
 	"fmt"
 	"regexp"
 	"strings"
@@ -733,6 +734,17 @@ func (c *WebexConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		return fmt.Errorf("one of room_id, to_person_id, or to_person_email required")
 	} else if count > 1 {
 		return fmt.Errorf("only one of room_id, to_person_id, or to_person_email is allowed")
+	}
+
+	// Validate Adaptive Card attachment JSON
+	for _, attachment := range c.Attachments {
+		if attachment.Content != "" {
+			var card map[string]interface{}
+			err := json.Unmarshal([]byte(attachment.Content), &card)
+			if err != nil {
+				return err
+			}
+		}
 	}
 
 	return nil
