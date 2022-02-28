@@ -1010,13 +1010,15 @@ API](https://webexapis.com/v1/messages).
 ```
 
 ### `<attachment_config>`
+
 For information on Adaptive Cards in Webex, see https://developer.webex.com/docs/api/guides/cards
 
 ```yaml
 [ content_type: <tmpl_string> ]
-# The content section is a JSON string representing the Adaptive Card.
+# In order to make templating in attachments practical, the content section is a JSON string representing the Adaptive Card.
 [ content: <tmpl_string> ]
 ```
+
 ## `<wechat_config>`
 
 WeChat notifications are sent via the [WeChat

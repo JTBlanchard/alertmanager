@@ -744,6 +744,7 @@ to_person_id: '54321'
 		t.Errorf("\nexpected:\n%v\ngot:\n%v", expected, err.Error())
 	}
 }
+
 func newBoolPointer(b bool) *bool {
 	return &b
 }

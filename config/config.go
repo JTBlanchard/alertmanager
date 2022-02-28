@@ -178,13 +178,11 @@ func Load(s string) (*Config, error) {
 	// UnmarshalYAML method because it won't be called if the input is empty
 	// (e.g. the config file is empty or only contains whitespace).
 	if cfg.Route == nil {
-		fmt.Println("cfg.Route error")
 		return nil, errors.New("no route provided in config")
 	}
 
 	// Check if continue in root route.
 	if cfg.Route.Continue {
-		fmt.Println("continue in root route error")
 		return nil, errors.New("cannot have continue in root route")
 	}
 
@@ -697,12 +695,9 @@ type GlobalConfig struct {
 	WeChatAPICorpID    string     `yaml:"wechat_api_corp_id,omitempty" json:"wechat_api_corp_id,omitempty"`
 	VictorOpsAPIURL    *URL       `yaml:"victorops_api_url,omitempty" json:"victorops_api_url,omitempty"`
 	VictorOpsAPIKey    Secret     `yaml:"victorops_api_key,omitempty" json:"victorops_api_key,omitempty"`
-<<<<<<< HEAD
 	TelegramAPIUrl     *URL       `yaml:"telegram_api_url,omitempty" json:"telegram_api_url,omitempty"`
-=======
 	WebexAPIURL        *URL       `yaml:"webex_api_url,omitempty" json:"webex_api_url,omitempty"`
 	WebexAPIToken      Secret     `yaml:"webex_api_token,omitempty" json:"webex_api_token,omitempty"`
->>>>>>> d1346fca (Add file/attachment support to webex notifier)
 }
 
 // UnmarshalYAML implements the yaml.Unmarshaler interface for GlobalConfig.
@@ -842,11 +837,8 @@ type Receiver struct {
 	PushoverConfigs  []*PushoverConfig  `yaml:"pushover_configs,omitempty" json:"pushover_configs,omitempty"`
 	VictorOpsConfigs []*VictorOpsConfig `yaml:"victorops_configs,omitempty" json:"victorops_configs,omitempty"`
 	SNSConfigs       []*SNSConfig       `yaml:"sns_configs,omitempty" json:"sns_configs,omitempty"`
-<<<<<<< HEAD
 	TelegramConfigs  []*TelegramConfig  `yaml:"telegram_configs,omitempty" json:"telegram_configs,omitempty"`
-=======
 	WebexConfigs     []*WebexConfig     `yaml:"webex_configs,omitempty" json:"webex_configs,omitempty"`
->>>>>>> d1346fca (Add file/attachment support to webex notifier)
 }
 
 // UnmarshalYAML implements the yaml.Unmarshaler interface for Receiver.
