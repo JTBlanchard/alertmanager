@@ -130,7 +130,7 @@ func (n *Notifier) createRequest(ctx context.Context, alerts ...*types.Alert) (*
 		card := make(map[string]interface{})
 		jsonErr := json.Unmarshal([]byte(cardJSON), &card)
 		if jsonErr != nil {
-			return nil, false, errors.Wrap(jsonErr, "failed to parse adaptive card JSON")
+			return nil, false, errors.Wrap(jsonErr, "failed to parse Webex attachment content JSON")
 		}
 
 		newAttachment := webexAttachment{

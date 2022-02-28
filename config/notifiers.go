@@ -740,9 +740,9 @@ func (c *WebexConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	for _, attachment := range c.Attachments {
 		if attachment.Content != "" {
 			var card map[string]interface{}
-			err := json.Unmarshal([]byte(attachment.Content), &card)
-			if err != nil {
-				return err
+			jsonErr := json.Unmarshal([]byte(attachment.Content), &card)
+			if jsonErr != nil {
+				return errors.Wrap(jsonErr, "failed to parse Webex attachment content JSON")
 			}
 		}
 	}
